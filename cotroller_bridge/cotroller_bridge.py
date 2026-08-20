@@ -33,7 +33,6 @@ from imrc_messages.action import BallColor
 from imrc_messages.action import BoxCommand
 from imrc_messages.action import LinearMove
 from imrc_messages.action import Rotate
-from imrc_messages.action import TargetPosition
 from imrc_messages.action import TiltAdjustment
 
 
@@ -246,14 +245,6 @@ ACTION_CONFIG = {
         "fields": [
             ("mode", str),
             ("angle", float),
-        ],
-    },
-
-    "TargetPosition": {
-        "action_type": TargetPosition,
-        "fields": [
-            ("field_color", str),
-            ("position", str),
         ],
     },
 
