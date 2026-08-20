@@ -10,9 +10,16 @@ from std_msgs.msg import Int8
 
 from imrc_messages.msg import PCU
 from imrc_messages.msg import BallInfo
+from imrc_messages.msg import Circle
+from imrc_messages.msg import ConpanelBuzzerControl
+from imrc_messages.msg import ConpanelLedControl
 
-from imrc_messages.srv import BrockOperate
 
+from imrc_messages.srv import BrockOperate 
+from imrc_messages.srv import GoalPosition
+from imrc_messages.srv import IndexSelect
+from imrc_messages.srv import ResetMissBall
+from imrc_messages.srv import StringRequest   
 
 # ==========================================
 # name ごとの設定たち
@@ -54,6 +61,24 @@ CONFIG = {
         ],
     },
 
+    "/conpanel_buzzer_control": {
+        "msg_type": ConpanelBuzzerControl,
+        "fields": [
+            ("count", int),
+            ("isloop", bool),
+        ],
+    },
+
+    "/conpanel_led_control": {
+        "msg_type": ConpanelLedControl,
+        "fields": [
+            ("led_index", int),
+            ("led_state", bool),
+        ],
+    },
+
+
+
 }
 
 # Service ごとの設定たち
@@ -64,6 +89,35 @@ SERVICE_CONFIG = {
             ("color", str),
         ],
     },
+
+    "/goal_position": {
+        "srv_type": GoalPosition,
+        "fields": [
+            ("position", str),
+        ],
+    },
+
+    "/index_select": {
+        "srv_type": IndexSelect,
+        "fields": [
+            ("selection", int),
+        ],
+    },
+
+    "/reset_miss_ball": {
+        "srv_type": ResetMissBall,
+        "fields": [
+            ("color", str),
+        ],
+    },
+
+    "/string_request": {
+        "srv_type": StringRequest,
+        "fields": [
+            ("target", str),
+        ],
+    },
+        
 }
 
 # ==========================================
