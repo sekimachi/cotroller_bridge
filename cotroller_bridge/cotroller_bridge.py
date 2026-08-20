@@ -2,6 +2,7 @@
 import json
 import rclpy
 from rclpy.node import Node
+from rclpy.action import ActionClient
 from std_msgs.msg import String
 from std_msgs.msg import Float32
 from std_msgs.msg import Int32  
@@ -27,6 +28,8 @@ from imrc_messages.srv import GoalPosition
 from imrc_messages.srv import IndexSelect
 from imrc_messages.srv import ResetMissBall
 from imrc_messages.srv import StringRequest   
+
+from imrc_messages.action import BallColor
 
 # ==========================================
 # name ごとの設定たち
@@ -168,35 +171,35 @@ CONFIG = {
 
 # Service ごとの設定たち
 SERVICE_CONFIG = {
-    "/brock_operate": {
+    "BrockOperate": {
         "srv_type": BrockOperate,
         "fields": [
             ("color", str),
         ],
     },
 
-    "/goal_position": {
+    "GoalPosition": {
         "srv_type": GoalPosition,
         "fields": [
             ("position", str),
         ],
     },
 
-    "/index_select": {
+    "IndexSelect": {
         "srv_type": IndexSelect,
         "fields": [
             ("selection", int),
         ],
     },
 
-    "/reset_miss_ball": {
+    "ResetMiss_ball": {
         "srv_type": ResetMissBall,
         "fields": [
             ("color", str),
         ],
     },
 
-    "/string_request": {
+    "StringRequest": {
         "srv_type": StringRequest,
         "fields": [
             ("target", str),
@@ -204,6 +207,63 @@ SERVICE_CONFIG = {
     },
         
 }
+
+# Action ごとの設定たち
+ACTION_CONFIG = {
+    "BallColor": {
+        "action_type": BallColor,
+        "fields": [
+            ("color", str),
+        ],
+    },
+
+    "BoxCommand": {
+        "action_type": BoxCommand,
+        "fields": [
+            ("color", str),
+            ("moveforward",bool)
+        ],
+    },
+
+    "LinearMove": {
+        "action_type": LinearMove,
+        "fields": [
+            ("target_x", float),
+            ("target_y", float),
+            ("target_yaw", float),
+            ("skip_yaw",bool),
+        ],
+    },
+
+    "Rotate": {
+        "action_type": Rotate,
+        "fields": [
+            ("mode", str),
+            ("angle", float),
+        ],
+    },
+
+    "TargetPosition": {
+        "action_type": TargetPosition,
+        "fields": [
+            ("field_color", str),
+            ("position", str),
+        ],
+    },
+
+    "TiltAdjustment": {
+        "action_type": TiltAdjustment,
+        "fields": [
+            ("direction_x", str),
+            ("distance_x", float),
+            ("direction_y", str),
+            ("distance_y", float),
+            ("angle_direction", str),
+            ("angle", float),
+        ],
+    },
+}
+
 
 # ==========================================
 # ノード♡
@@ -216,6 +276,9 @@ class Cotroller(Node):
 
         # Service Clientを保存するお辞書
         self._cj_clients = {}
+
+        # Action Clientを保存するお辞書
+        self._cj_action_clients = {}
 
         self.subscription = self.create_subscription(String,"cotroll_json",self.on_control_json,10,)
 
@@ -234,6 +297,11 @@ class Cotroller(Node):
 
         name = data.get("name")
         values = data.get("value", [])
+
+        # ★ Actionの場合
+        if name in ACTION_CONFIG:
+            self.on_action_request(name, values)
+            return
 
         # ★ Serviceの場合
         if name in SERVICE_CONFIG:
@@ -354,13 +422,125 @@ class Cotroller(Node):
             f"{name} <- {response}"
         )
 
-        # ★ Responseの中身を取得
+        # Responseの中身を取得
         self.get_logger().info(
             f"success = {response.success}"
         )
 
         self.get_logger().info(
             f"distance = {response.distance}"
+        )
+
+    #  ==========================================
+    #  Actionを呼び出す（結果だけ受け取る）
+    #  ==========================================
+    def on_action_request(self, name, values):
+
+        config = ACTION_CONFIG[name]
+        fields = config["fields"]
+
+        if len(values) < len(fields):
+            self.get_logger().error(
+                f"{name}: valueの数が足りません "
+                f"(必要{len(fields)}, 受信{len(values)})"
+            )
+            return
+
+        # Action Clientを初回のみ作成
+        if name not in self._cj_action_clients:
+            self._cj_action_clients[name] = ActionClient(
+                self,
+                config["action_type"],
+                name,
+            )
+
+            self.get_logger().info(
+                f"Action Clientを作成しました: {name}"
+            )
+
+        client = self._cj_action_clients[name]
+
+        # Action Serverが存在するか確認（見つからなければ待たずに諦める）
+        if not client.server_is_ready():
+            self.get_logger().warn(
+                f"Action Serverがまだ利用できません: {name}"
+            )
+            return
+
+        # Goalを作成
+        goal_msg = config["action_type"].Goal()
+
+        # JSONのvalueをGoalへ設定
+        for (field_name, field_type), raw_value in zip(fields, values):
+            try:
+                converted = field_type(raw_value)
+            except (ValueError, TypeError) as e:
+                self.get_logger().error(
+                    f'{name}.{field_name} の変換に失敗しました: "{raw_value}" -> '
+                    f"{field_type.__name__} ({e})"
+                )
+                return
+
+            setattr(goal_msg, field_name, converted)
+
+        # Goalを非同期で送信（フィードバックは受け取らない）
+        send_goal_future = client.send_goal_async(goal_msg)
+
+        send_goal_future.add_done_callback(
+            lambda future: self.on_action_goal_response(name, future)
+        )
+
+        self.get_logger().info(
+            f"{name} -> {goal_msg}"
+        )
+
+    # ==========================================
+    # Goalが受理されたかどうかを受け取る
+    # ==========================================
+    def on_action_goal_response(self, name, future):
+
+        try:
+            goal_handle = future.result()
+
+        except Exception as e:
+            self.get_logger().error(
+                f"{name} Goal送信に失敗しました: {e}"
+            )
+            return
+
+        if not goal_handle.accepted:
+            self.get_logger().warn(
+                f"{name} Goalが拒否されました"
+            )
+            return
+
+        self.get_logger().info(
+            f"{name} Goalが受理されました"
+        )
+
+        # 結果だけ受け取る
+        result_future = goal_handle.get_result_future()
+
+        result_future.add_done_callback(
+            lambda future: self.on_action_result(name, future)
+        )
+
+    # ==========================================
+    # Actionの最終結果を受け取る
+    # ==========================================
+    def on_action_result(self, name, future):
+
+        try:
+            result = future.result().result
+
+        except Exception as e:
+            self.get_logger().error(
+                f"{name} 結果の取得に失敗しました: {e}"
+            )
+            return
+
+        self.get_logger().info(
+            f"{name} <- {result}"
         )
 
 
