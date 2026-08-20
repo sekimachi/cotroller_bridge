@@ -8,12 +8,19 @@ from std_msgs.msg import Int32
 from std_msgs.msg import Int8   
 
 
-from imrc_messages.msg import PCU
 from imrc_messages.msg import BallInfo
 from imrc_messages.msg import Circle
 from imrc_messages.msg import ConpanelBuzzerControl
 from imrc_messages.msg import ConpanelLedControl
-
+from imrc_messages.msg import GeneralCommand
+from imrc_messages.msg import LCU
+from imrc_messages.msg import LedControl
+from imrc_messages.msg import LedData
+from imrc_messages.msg import MissBallInfo
+from imrc_messages.msg import MotorControl
+from imrc_messages.msg import PCU
+from imrc_messages.msg import RU
+from imrc_messages.msg import RobotActionProgress
 
 from imrc_messages.srv import BrockOperate 
 from imrc_messages.srv import GoalPosition
@@ -77,6 +84,84 @@ CONFIG = {
         ],
     },
 
+    "/general_command": {
+        "msg_type": GeneralCommand,
+        "fields": [
+            ("target", str),
+            ("param", int),
+        ],
+    },
+    "/LCU": {
+        "msg_type": LCU,
+        "fields": [
+            ("led_id", int),
+            ("led_color", str),
+            ("led_brightness", float),
+            ("led_mode", str),
+            ("duration", float),
+        ],
+    },
+    "/led_Control": {
+        "msg_type": LedControl,
+        "fields": [
+            ("led_id", int),
+            ("led_color", str),
+            ("led_brightness", float),
+            ("led_mode", str),
+            ("duration", float),
+        ],
+    },
+    "/led_data": {
+        "msg_type": LedData,
+        "fields": [
+            ("led_index", int),
+            ("led_color_red", int),
+            ("led_color_green", int),
+            ("led_color_blue", int),
+            ("led_mode", int),
+            ("blink_duration", float),
+        ],
+    },
+    "/miss_ball_info": {
+        "msg_type": MissBallInfo,
+        "fields": [
+            ("miss_red", int),
+            ("miss_blue", int),
+            ("miss_yellow", int),
+        ],
+    },
+    "/motor_control": {
+        "msg_type": MotorControl,
+        "fields": [
+            ("target", str),
+            ("param", str),
+        ],
+    },
+    "/pcu": {
+        "msg_type": PCU,
+        "fields": [
+            ("relay_state", int),
+            ("unit_index", int),
+            ("mode", str),
+        ],
+    },
+    "/ru": {
+        "msg_type": RU,
+        "fields": [
+            ("relay_no", int),
+            ("relay_state", int),
+            ("unit_index", int),
+            ("mode", str),
+        ],
+    },
+    "/robot_action_progress": {
+        "msg_type": RobotActionProgress,
+        "fields": [
+            ("target", str),
+            ("param", str),
+            ("state", str),
+        ],
+    },
 
 
 }
