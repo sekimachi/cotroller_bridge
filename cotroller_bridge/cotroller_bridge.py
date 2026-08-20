@@ -30,6 +30,12 @@ from imrc_messages.srv import ResetMissBall
 from imrc_messages.srv import StringRequest   
 
 from imrc_messages.action import BallColor
+from imrc_messages.action import BoxCommand
+from imrc_messages.action import LinearMove
+from imrc_messages.action import Rotate
+from imrc_messages.action import TargetPosition
+from imrc_messages.action import TiltAdjustment
+
 
 # ==========================================
 # name ごとの設定たち
