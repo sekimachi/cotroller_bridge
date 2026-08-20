@@ -50,6 +50,11 @@ CONFIG = {
         "fields": [("data", str)],
     },
 
+    "/brock_YOLO": {
+        "msg_type": bool,
+        "fields": [("True/False", bool)],
+    },
+
     "/power_state": {
         "msg_type": PCU,
         "fields": [
